@@ -1,0 +1,6 @@
+{
+  "name": "iBlokYou",
+  "description": "iBlokYou: An interactive tabletop simulation where four contrasting players move from intense zero-point confrontation to collaborative consensus, positive politeness, and face-saving victory.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
