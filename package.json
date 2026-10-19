@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build": "vite build && node scripts/sync-docs.js",
+    "build:docs": "node scripts/sync-docs.js",
     "start": "tsx server.ts",
     "preview": "vite preview --port=3000 --host=0.0.0.0",
-    "clean": "rm -rf dist server.js",
+    "clean": "rm -rf dist docs server.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

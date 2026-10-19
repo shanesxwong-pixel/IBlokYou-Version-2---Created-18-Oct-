@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iBlokYou — Conflict to Consensus</title>
+    <meta name="description" content="iBlokYou: An interactive tabletop board game simulation exploring conflict resolution, politeness tokens, and face-saving consensus." />
+    <meta property="og:title" content="iBlokYou — Conflict to Consensus" />
+    <meta property="og:description" content="iBlokYou: An interactive tabletop board game simulation exploring conflict resolution, politeness tokens, and face-saving consensus." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Ignore WebSocket and Vite HMR errors per AI Studio environment constraints
+      window.addEventListener('unhandledrejection', function (event) {
+        if (
+          event &&
+          event.reason &&
+          ((typeof event.reason.message === 'string' &&
+            (event.reason.message.includes('WebSocket') ||
+             event.reason.message.includes('vite:ws') ||
+             event.reason.message.includes('closed without opened'))) ||
+           (typeof event.reason.stack === 'string' &&
+            (event.reason.stack.includes('@vite/client') ||
+             event.reason.stack.includes('vite/client'))))
+        ) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener('error', function (event) {
+        if (
+          event &&
+          ((typeof event.message === 'string' && event.message.includes('WebSocket')) ||
+           (typeof event.filename === 'string' &&
+            (event.filename.includes('@vite/client') || event.filename.includes('vite/client'))))
+        ) {
+          event.preventDefault();
+        }
+      });
+
+      // GitHub Pages compatibility fallback:
+      // If published from repo root without GitHub Actions (where raw .tsx cannot run in browser),
+      // seamlessly redirect to the pre-compiled /docs/ or standalone edition.
+      if (
+        window.location.hostname.endsWith('github.io') &&
+        !window.location.pathname.includes('/docs') &&
+        !window.location.pathname.endsWith('iblokyou.html')
+      ) {
+        window.addEventListener('DOMContentLoaded', function () {
+          setTimeout(function () {
+            var rootEl = document.getElementById('root');
+            if (!rootEl || rootEl.children.length === 0) {
+              console.log('GitHub Pages root detected without active bundler. Directing to docs/ ...');
+              var basePath = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+              window.location.replace(basePath + '/docs/');
+            }
+          }, 800);
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-DfFugyoh.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-vM5Jf0IR.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
