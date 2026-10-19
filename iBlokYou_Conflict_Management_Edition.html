@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iBlokYou — Conflict Management Edition</title>
+    <meta name="description" content="iBlokYou: Conflict Management Edition. Tabletop polyomino strategy game with power cards, politeness tokens, and mathematical shape validation." />
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        header h1 {
+            margin: 0 0 6px 0;
+            font-size: 1.8rem;
+            letter-spacing: -0.5px;
+        }
+        header p {
+            margin: 0;
+            opacity: 0.85;
+            font-size: 0.95rem;
+        }
+        .header-meta {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+        }
+        .badge {
+            background: rgba(255,255,255,0.18);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .setup-container {
+            background: white;
+            padding: 24px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            max-width: 640px;
+            margin: 0 auto 20px auto;
+        }
+        .room-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #cbd5e1;
+        }
+        .room-bar label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #334155;
+            white-space: nowrap;
+        }
+        .room-bar input {
+            font-family: monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #94a3b8;
+            font-size: 0.95rem;
+            width: 130px;
+            letter-spacing: 1px;
+        }
+        .player-input-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+        .color-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .player-input-group label {
+            width: 140px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .player-input {
+            padding: 9px 12px;
+            flex: 1;
+            border: 1px solid #ccd0d5;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        .player-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        .game-container {
+            display: none;
+            gap: 20px;
+            max-width: 1380px;
+            margin: 0 auto;
+            align-items: flex-start;
+        }
+        .board-container {
+            background: white;
+            padding: 18px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            flex-shrink: 0;
+        }
+        .board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(20, 24px);
+            grid-template-rows: repeat(20, 24px);
+            gap: 1px;
+            background: #d1d5db;
+            border: 3px solid #2c3e50;
+            border-radius: 4px;
+            position: relative;
+            user-select: none;
+        }
+        .cell {
+            background: white;
+            width: 24px;
+            height: 24px;
+            box-sizing: border-box;
+            transition: background-color 0.08s ease, border-color 0.08s ease;
+            position: relative;
+        }
+        .cell.corner-anchor::after {
+            content: '★';
+            position: absolute;
+            font-size: 11px;
+            line-height: 24px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            opacity: 0.45;
+            color: #4b5563;
+        }
+        .cell.legal-highlight {
+            border: 2px solid #2ecc71 !important;
+            background-color: rgba(46, 204, 113, 0.35) !important;
+            cursor: pointer;
+        }
+        .cell.illegal-highlight {
+            border: 2px solid #e74c3c !important;
+            background-color: rgba(231, 76, 60, 0.35) !important;
+            cursor: not-allowed;
+        }
+        /* Verified Power Card Highlights */
+        .cell.swap-proposer-highlight {
+            border: 3px solid #9b59b6 !important;
+            background-color: rgba(155, 89, 182, 0.5) !important;
+            box-shadow: inset 0 0 4px #9b59b6;
+        }
+        .cell.swap-target-highlight {
+            border: 3px solid #00bcd4 !important;
+            background-color: rgba(0, 188, 212, 0.5) !important;
+            box-shadow: inset 0 0 4px #00bcd4;
+        }
+        .cell.force-keep-highlight {
+            border: 3px solid #e67e22 !important;
+            background-color: rgba(230, 126, 34, 0.5) !important;
+            box-shadow: inset 0 0 4px #e67e22;
+        }
+        .cell.red { background: #e74c3c; border: 1px solid #c0392b; }
+        .cell.blue { background: #3498db; border: 1px solid #2980b9; }
+        .cell.green { background: #2ecc71; border: 1px solid #27ae60; }
+        .cell.yellow { background: #f1c40f; border: 1px solid #d4ac0d; }
+        .cell.neutral-wall { background: #7f8c8d !important; border: 2px dashed #2c3e50; }
+        .cell.neutral-bridge { background: #16a085 !important; border: 2px dotted #fff; }
+
+        .board-controls {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .controls-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 320px;
+        }
+        .panel {
+            background: white;
+            padding: 16px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .btn {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .btn:hover { background: #2c3e50; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-card {
+            background: #9b59b6;
+            width: 100%;
+            margin-bottom: 8px;
+            text-align: left;
+            padding: 10px 14px;
+            justify-content: space-between;
+            border-radius: 7px;
+        }
+        .btn-card:hover { background: #8e44ad; }
+        .btn-card:disabled {
+            background: #cbd5e1;
+            color: #64748b;
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.7;
+        }
+        .btn-start {
+            background: #2ecc71;
+            width: 100%;
+            font-size: 1.05rem;
+            padding: 13px;
+            text-align: center;
+            justify-content: center;
+            margin-top: 14px;
+        }
+        .btn-start:hover { background: #27ae60; }
+        
+        .card-counter {
+            background: rgba(255,255,255,0.3);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 700;
+        }
+
+        /* Active piece preview & piece inventory tray */
+        .piece-preview-box {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+        .piece-matrix-view {
+            display: inline-grid;
+            gap: 1px;
+            background: #cbd5e1;
+            padding: 2px;
+            border-radius: 4px;
+        }
+        .p-square {
+            width: 16px;
+            height: 16px;
+            background: #e2e8f0;
+        }
+        .p-square.filled {
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+        }
+        .tray-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+            gap: 8px;
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-top: 10px;
+        }
+        .tray-item {
+            border: 1px solid #cbd5e1;
+            background: white;
+            border-radius: 6px;
+            padding: 6px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.15s ease;
+        }
+        .tray-item:hover {
+            border-color: #3498db;
+            background: #ebf5fb;
+        }
+        .tray-item.active {
+            border-color: #2ecc71;
+            background: #e8f8f0;
+            box-shadow: 0 0 0 2px #2ecc71;
+        }
+        .tray-item.used {
+            opacity: 0.35;
+            cursor: not-allowed;
+            background: #f1f5f9;
+        }
+        .tray-item-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin-top: 4px;
+            color: #475569;
+        }
+
+        /* Player Score & Politeness Roster */
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .roster-card {
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 2px solid transparent;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .roster-card.active-turn {
+            box-shadow: 0 0 0 3px #2ecc71, 0 4px 10px rgba(46, 204, 113, 0.25);
+            background: white;
+        }
+        .roster-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .roster-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            margin-top: 6px;
+            color: #64748b;
+        }
+        .token-tag {
+            color: #059669;
+            font-weight: 700;
+            background: #d1fae5;
+            padding: 1px 6px;
+            border-radius: 10px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(3px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 26px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 520px;
+            width: 90%;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.3);
+            border: 1px solid #e2e8f0;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .btn-confirm { background: #2ecc71; color: white; padding: 10px 18px; font-weight: bold; border-radius: 6px; border:none; cursor:pointer;}
+        .btn-confirm:hover { background: #27ae60; }
+        .btn-reject { background: #e74c3c; color: white; padding: 10px 18px; font-weight: bold; border-radius: 6px; border:none; cursor:pointer;}
+        .btn-reject:hover { background: #c0392b; }
+        .btn-secondary { background: #64748b; color: white; padding: 10px 18px; font-weight: bold; border-radius: 6px; border:none; cursor:pointer;}
+        .btn-secondary:hover { background: #475569; }
+        .btn-arbitrate { background: #8e44ad; color: white; padding: 10px 18px; font-weight: bold; border-radius: 6px; border:none; cursor:pointer;}
+        .btn-arbitrate:hover { background: #732d91; }
+
+        .select-input {
+            padding: 9px 12px;
+            font-size: 1rem;
+            width: 85%;
+            margin: 12px 0;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Status Pills */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .status-pill.immunity {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+        .status-pill.penalty {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        /* Log Feed */
+        .log-box {
+            max-height: 120px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            color: #475569;
+        }
+        .log-item {
+            margin-bottom: 4px;
+            border-bottom: 1px solid #edf2f7;
+            padding-bottom: 3px;
+        }
+
+        /* Toast element */
+        #toast {
+            display: none;
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+        }
+    </style>
+<script src="/_aistudio-iframe.js?v=6634132a"></script></head>
+<body>
+
+<header>
+    <h1>iBlokYou — Conflict Management Edition</h1>
+    <p>Strategic Card Resolution & Mathematical Shape Validation Engine</p>
+    <div class="header-meta">
+        <span class="badge" id="header-room-badge">Room: N5C7</span>
+        <span class="badge">Version 2.0</span>
+        <span class="badge">AI Assisted: Google Gemini</span>
+        <span class="badge">License: Apache 2.0</span>
+        <span class="badge">Face-Saving Consensus Mechanics</span>
+    </div>
+</header>
+
+<!-- INITIAL START VIEW (ROOM CODE + EDITABLE ALIASES) -->
+<div class="setup-container" id="setup-panel">
+    <h3 style="margin-top:0;">Player Configuration & Room Setup</h3>
+    <p style="font-size:0.9rem; color:#64748b;">
+        Configure persistent aliases and verify your server room session. All four player names remain completely editable:
+    </p>
+
+    <!-- Active Server Room Tracking Input -->
+    <div class="room-bar">
+        <label for="room-code-input">Active Room Code:</label>
+        <input type="text" id="room-code-input" value="N5C7" maxlength="8" />
+        <button class="btn" style="padding:6px 12px; font-size:0.8rem; margin-left:auto;" onclick="copyRoomLink()">
+            📋 Copy Room URL
+        </button>
+    </div>
+    
+    <div class="player-input-group">
+        <span class="color-dot" style="background: #e74c3c;"></span>
+        <label for="name-red">Player 1 (Red):</label>
+        <input type="text" id="name-red" class="player-input" value="Strategic Red">
+    </div>
+    <div class="player-input-group">
+        <span class="color-dot" style="background: #3498db;"></span>
+        <label for="name-blue">Player 2 (Blue):</label>
+        <input type="text" id="name-blue" class="player-input" value="Tactical Blue">
+    </div>
+    <div class="player-input-group">
+        <span class="color-dot" style="background: #2ecc71;"></span>
+        <label for="name-green">Player 3 (Green):</label>
+        <input type="text" id="name-green" class="player-input" value="Diplomatic Green">
+    </div>
+    <div class="player-input-group">
+        <span class="color-dot" style="background: #f1c40f;"></span>
+        <label for="name-yellow">Player 4 (Yellow):</label>
+        <input type="text" id="name-yellow" class="player-input" value="Resilient Yellow">
+    </div>
+
+    <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:6px; padding:10px 14px; margin-top:14px; font-size:0.85rem; color:#3730a3;">
+        <strong>Strategic Starting Corners:</strong><br/>
+        • Red: Top-Left (0, 0) | • Blue: Bottom-Right (19, 19)<br/>
+        • Green: Top-Right (0, 19) | • Yellow: Bottom-Left (19, 0)
+    </div>
+    
+    <button class="btn btn-start" onclick="startGame()">Lock Names & Initialize Board</button>
+</div>
+
+<div class="game-container" id="main-game-layout">
+    <!-- Board column -->
+    <div class="board-container">
+        <div class="board-header">
+            <div>
+                <h3 id="turn-indicator" style="margin:0; font-size:1.2rem;">Current Turn: Red</h3>
+                <div id="action-prompt" style="color: #16a085; font-size:0.85rem; font-weight:600; margin-top:3px;">
+                    Select a tile and place it on your starting corner!
+                </div>
+                <div id="status-pills-row"></div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                <span id="active-room-display" style="font-family:monospace; font-weight:700; background:#e2e8f0; padding:3px 8px; border-radius:6px; font-size:0.8rem;">
+                    ROOM: N5C7
+                </span>
+                <button class="btn" onclick="toggleSound()" id="sound-btn" style="padding:5px 9px; font-size:0.75rem;">
+                    🔊 Sound: ON
+                </button>
+            </div>
+        </div>
+
+        <!-- 20x20 Mathematical Grid (Zero Physics, Zero Jitter) -->
+        <div id="gameboard" class="grid"></div>
+
+        <div class="board-controls">
+            <button class="btn" onclick="rotateCurrentTile()">Rotate ↻ (R)</button>
+            <button class="btn" onclick="flipCurrentTile()">Flip ↔ (F)</button>
+            <button class="btn" onclick="passTurn()" style="background:#64748b;">Pass Turn (P)</button>
+            <button class="btn" id="cancel-action-btn" onclick="cancelPendingCardAction()" style="background:#e74c3c; display:none;">✕ Cancel Card Action</button>
+            <button class="btn" onclick="resetToSetup()" style="background:#475569; margin-left:auto;">⚙ Setup</button>
+        </div>
+
+        <!-- Piece preview box -->
+        <div class="piece-preview-box">
+            <div>
+                <div style="font-size:0.75rem; font-weight:700; color:#64748b; margin-bottom:4px;">ACTIVE TILE PREVIEW</div>
+                <div id="active-tile-name" style="font-weight:700; font-size:0.9rem;">L5 — Pentamino</div>
+            </div>
+            <div id="active-tile-matrix" class="piece-matrix-view"></div>
+            <div style="font-size:0.8rem; color:#64748b; margin-left:auto;">
+                Hover over board to validate placement.<br/>
+                <span style="color:#059669; font-weight:600;">Green: Legal</span> | <span style="color:#dc2626; font-weight:600;">Red: Blocked</span>
+            </div>
+        </div>
+
+        <!-- Tile inventory tray -->
+        <div style="margin-top:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; font-size:0.85rem; color:#334155;">Available Polyominoes in Hand</span>
+                <span id="tray-count-label" style="font-size:0.8rem; color:#64748b;">21 remaining</span>
+            </div>
+            <div class="tray-grid" id="pieces-tray"></div>
+        </div>
+    </div>
+
+    <!-- Controls & Roster Column -->
+    <div class="controls-container">
+        <!-- Roster Panel with Politeness Tokens & Penalty Scoring -->
+        <div class="panel">
+            <h4 style="margin:0 0 10px 0;">Player Standings & Politeness Tokens</h4>
+            <div class="roster-grid" id="roster-grid"></div>
+            <div style="font-size:0.8rem; color:#64748b; background:#f1f5f9; padding:8px 10px; border-radius:6px; line-height:1.4;">
+                💡 <strong>Politeness Score Routine:</strong> Total Penalty Score = (Unplaced remaining tile squares) - (Politeness Tokens × 3). <em>Lowest penalty wins!</em>
+            </div>
+        </div>
+
+        <!-- Complete 5-Card Power Deck Panel (Max 3 Total Moves per Player) -->
+        <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <h3 style="margin:0; font-size:1.05rem;">Your Power Deck</h3>
+                <span id="deck-moves-left-badge" style="font-size:0.75rem; font-weight:700; background:#f3e8ff; color:#7e22ce; padding:2px 8px; border-radius:10px;">
+                    Moves Left: 3 / 3
+                </span>
+            </div>
+            <p style="font-size:0.8rem; color:#64748b; margin-top:2px; margin-bottom:12px;">
+                Strict cap of 3 power card moves total. Cards are <strong>only consumed</strong> upon finalized and approved actions!
+            </p>
+            <button id="card-swap" class="btn btn-card" onclick="initiateSwapWorkflow()">
+                <span>🔄 Swap Card (Mutual Flood-Fill)</span>
+                <span class="card-counter" id="count-swap">1</span>
+            </button>
+            <button id="card-force" class="btn btn-card" style="background: #d35400;" onclick="activateForceKeepCard()">
+                <span>🎯 Force Keep (Flood-Fill Hijack)</span>
+                <span class="card-counter" id="count-force">1</span>
+            </button>
+            <button id="card-open" class="btn btn-card" style="background: #2980b9;" onclick="activateOpenBookCard()">
+                <span>📖 Open Book (Trust Immunity)</span>
+                <span class="card-counter" id="count-open">1</span>
+            </button>
+            <button id="card-wall" class="btn btn-card" style="background: #7f8c8d;" onclick="activateBoundaryWallCard()">
+                <span>🧱 Boundary Wall (Neutral Barricade)</span>
+                <span class="card-counter" id="count-wall">1</span>
+            </button>
+            <button id="card-bridge" class="btn btn-card" style="background: #16a085;" onclick="activateThirdPartyBridge()">
+                <span>🌉 Bridge Card (Collaborative Diagonal)</span>
+                <span class="card-counter" id="count-bridge">1</span>
+            </button>
+        </div>
+
+        <!-- Active Rule Enforcements -->
+        <div class="panel">
+            <h4 style="margin:0 0 8px 0; color:#1e293b;">Active Rule Enforcements</h4>
+            <ul style="padding-left:18px; line-height: 1.5em; margin:0; font-size:0.83rem; color:#475569;">
+                <li><strong>First Placement:</strong> Must overlap designated starting home corner.</li>
+                <li><strong>Corner-to-Corner:</strong> Must share at least one diagonal point with your own tiles or a neutral bridge.</li>
+                <li><strong>Edge Block Constraint:</strong> Cannot share flat edges with any matching color tiles.</li>
+                <li><strong>Trust Immunity:</strong> Cannot place adjacent to an immune player's corner matrix for 2 rounds.</li>
+            </ul>
+        </div>
+
+        <!-- Live Event Log -->
+        <div class="panel">
+            <h4 style="margin:0 0 6px 0;">Tactical Action Log</h4>
+            <div class="log-box" id="action-log"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Sequential Setup Modal Framework -->
+<div id="workflow-modal" class="modal">
+    <div class="modal-content" id="modal-wrapper">
+        <!-- Dynamic content injected smoothly by state functions -->
+    </div>
+</div>
+
+<!-- Toast element -->
+<div id="toast"></div>
+
+<script>
+    /* =========================================================================
+       iBlokYou: Conflict Management Edition Engine
+       Mathematical State Matrix & 5-Card Power System (Zero Physics)
+       ========================================================================= */
+    const BOARD_SIZE = 20;
+    let currentTurn = 'red';
+    const players = ['red', 'blue', 'green', 'yellow'];
+    const playerColorsHex = {
+        red: '#e74c3c',
+        blue: '#3498db',
+        green: '#2ecc71',
+        yellow: '#f1c40f'
+    };
+
+    const startingCorners = {
+        red: { x: 0, y: 0 },
+        blue: { x: 19, y: 19 },
+        green: { x: 19, y: 0 },
+        yellow: { x: 0, y: 19 }
+    };
+    
+    // Global Persistent Player State
+    let activeRoomCode = 'N5C7';
+    let playerNames = {
+        red: 'Strategic Red',
+        blue: 'Tactical Blue',
+        green: 'Diplomatic Green',
+        yellow: 'Resilient Yellow'
+    };
+
+    let firstMoveTracker = { red: true, blue: true, green: true, yellow: true };
+    let politenessTokens = { red: 0, blue: 0, green: 0, yellow: 0 };
+    let gridData = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+    
+    // Strict Card Inventory Registry (Max 3 Moves Total per player)
+    const MAX_POWER_MOVES = 3;
+    let powerMovesUsed = { red: 0, blue: 0, green: 0, yellow: 0 };
+    let playerDecks = {
+        red:    { swap: 1, force: 1, open: 1, wall: 1, bridge: 1 },
+        blue:   { swap: 1, force: 1, open: 1, wall: 1, bridge: 1 },
+        green:  { swap: 1, force: 1, open: 1, wall: 1, bridge: 1 },
+        yellow: { swap: 1, force: 1, open: 1, wall: 1, bridge: 1 }
+    };
+
+    // Card Special States & Mechanics
+    let pendingCardAction = null; // 'swap_pick_proposer' | 'swap_pick_target' | 'force_keep_pick' | 'place_wall' | 'place_bridge'
+    let swapProposerCoords = [];
+    let swapTargetCoords = [];
+    let swapTargetPlayer = null;
+    let forceKeepSelectedCoords = [];
+
+    // Open Book: Trust Immunity tracking (Social Penetration Theory)
+    // 2 full rounds = 8 individual steps
+    let trustImmunity = {
+        player: null,
+        stepsRemaining: 0
+    };
+
+    // Boundary Wall: Circumscribing Penalty tracking (skip next consecutive turn step)
+    let circumscribingPenalty = { red: false, blue: false, green: false, yellow: false };
+
+    // Audio SFX Engine
+    let audioEnabled = true;
+    let audioCtx = null;
+    function playBeep(freq = 440, type = 'sine', duration = 0.12) {
+        if (!audioEnabled) return;
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch (e) {}
+    }
+    function toggleSound() {
+        audioEnabled = !audioEnabled;
+        document.getElementById('sound-btn').innerText = audioEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+    }
+
+    // Standard Blokus 21-Piece Catalog
+    const BLOKUS_PIECES = [
+        { id: 'I1', name: 'Monomino', size: 1, matrix: [[1]] },
+        { id: 'I2', name: 'Domino', size: 2, matrix: [[1, 1]] },
+        { id: 'I3', name: 'I-Trio', size: 3, matrix: [[1, 1, 1]] },
+        { id: 'L3', name: 'Corner-Trio', size: 3, matrix: [[1, 0], [1, 1]] },
+        { id: 'I4', name: 'Straight-4', size: 4, matrix: [[1, 1, 1, 1]] },
+        { id: 'L4', name: 'L-Tetro', size: 4, matrix: [[1, 0], [1, 0], [1, 1]] },
+        { id: 'T4', name: 'T-Tetro', size: 4, matrix: [[1, 1, 1], [0, 1, 0]] },
+        { id: 'O4', name: 'Square-4', size: 4, matrix: [[1, 1], [1, 1]] },
+        { id: 'Z4', name: 'Z-Tetro', size: 4, matrix: [[1, 1, 0], [0, 1, 1]] },
+        { id: 'I5', name: 'Long-5', size: 5, matrix: [[1, 1, 1, 1, 1]] },
+        { id: 'L5', name: 'L-Penta', size: 5, matrix: [[1, 0], [1, 0], [1, 0], [1, 1]] },
+        { id: 'T5', name: 'T-Penta', size: 5, matrix: [[1, 1, 1], [0, 1, 0], [0, 1, 0]] },
+        { id: 'U5', name: 'U-Penta', size: 5, matrix: [[1, 0, 1], [1, 1, 1]] },
+        { id: 'V5', name: 'Corner-5', size: 5, matrix: [[1, 0, 0], [1, 0, 0], [1, 1, 1]] },
+        { id: 'W5', name: 'Step-5', size: 5, matrix: [[1, 0, 0], [1, 1, 0], [0, 1, 1]] },
+        { id: 'X5', name: 'Cross-5', size: 5, matrix: [[0, 1, 0], [1, 1, 1], [0, 1, 0]] },
+        { id: 'Y5', name: 'Finger-5', size: 5, matrix: [[0, 1], [1, 1], [0, 1], [0, 1]] },
+        { id: 'Z5', name: 'Z-Penta', size: 5, matrix: [[1, 1, 0], [0, 1, 0], [0, 1, 1]] },
+        { id: 'F5', name: 'F-Penta', size: 5, matrix: [[0, 1, 1], [1, 1, 0], [0, 1, 0]] },
+        { id: 'P5', name: 'P-Penta', size: 5, matrix: [[1, 1], [1, 1], [1, 0]] },
+        { id: 'N5', name: 'N-Penta', size: 5, matrix: [[1, 0], [1, 1], [0, 1], [0, 1]] }
+    ];
+
+    // Player Inventories (remaining piece IDs)
+    let playerInventories = {
+        red: BLOKUS_PIECES.map(p => p.id),
+        blue: BLOKUS_PIECES.map(p => p.id),
+        green: BLOKUS_PIECES.map(p => p.id),
+        yellow: BLOKUS_PIECES.map(p => p.id)
+    };
+
+    // Current Piece Selection
+    let selectedPieceId = 'L5';
+    let currentMatrix = getPieceDefinition('L5').matrix;
+    let hoveredOrigin = null;
+
+    // Toast Message
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3200);
+    }
+
+    function logAction(msg) {
+        const log = document.getElementById('action-log');
+        const d = new Date();
+        const timeStr = d.toTimeString().split(' ')[0];
+        const div = document.createElement('div');
+        div.className = 'log-item';
+        div.innerHTML = `<span style="color:#94a3b8;">[${timeStr}]</span> ${msg}`;
+        log.prepend(div);
+    }
+
+    function getPieceDefinition(id) {
+        return BLOKUS_PIECES.find(p => p.id === id) || BLOKUS_PIECES[0];
+    }
+
+    // URL Room Parameter Tracking & Preservation
+    function initRoomParameter() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomFromUrl = urlParams.get('room');
+        if (roomFromUrl && roomFromUrl.trim()) {
+            activeRoomCode = roomFromUrl.trim().toUpperCase();
+        } else {
+            // Generate clean 4-character room instance code e.g. N5C7
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let generated = '';
+            for (let i = 0; i < 4; i++) {
+                generated += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            activeRoomCode = generated;
+            preserveRoomInUrl(activeRoomCode);
+        }
+        document.getElementById('room-code-input').value = activeRoomCode;
+        document.getElementById('header-room-badge').innerText = `Room: ${activeRoomCode}`;
+    }
+
+    function preserveRoomInUrl(code) {
+        const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${encodeURIComponent(code)}`;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
+    }
+
+    function copyRoomLink() {
+        const roomVal = document.getElementById('room-code-input').value.trim().toUpperCase() || activeRoomCode;
+        const link = `${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${encodeURIComponent(roomVal)}`;
+        navigator.clipboard.writeText(link).then(() => {
+            showToast("Copied active room link to clipboard!");
+            playBeep(600, 'sine', 0.1);
+        });
+    }
+
+    // Matrix Transformations
+    function rotateMatrix(mat) {
+        const rows = mat.length;
+        const cols = mat[0].length;
+        const rotated = [];
+        for (let c = 0; c < cols; c++) {
+            const newRow = [];
+            for (let r = rows - 1; r >= 0; r--) {
+                newRow.push(mat[r][c]);
+            }
+            rotated.push(newRow);
+        }
+        return rotated;
+    }
+
+    function flipMatrix(mat) {
+        return mat.map(row => [...row].reverse());
+    }
+
+    function rotateCurrentTile() {
+        currentMatrix = rotateMatrix(currentMatrix);
+        renderActivePiecePreview();
+        playBeep(520, 'triangle', 0.08);
+        if (hoveredOrigin) highlightHover(hoveredOrigin.x, hoveredOrigin.y);
+    }
+
+    function flipCurrentTile() {
+        currentMatrix = flipMatrix(currentMatrix);
+        renderActivePiecePreview();
+        playBeep(480, 'triangle', 0.08);
+        if (hoveredOrigin) highlightHover(hoveredOrigin.x, hoveredOrigin.y);
+    }
+
+    // Setup & Initialization
+    function startGame() {
+        const codeEntered = document.getElementById('room-code-input').value.trim().toUpperCase();
+        if (codeEntered) {
+            activeRoomCode = codeEntered;
+            preserveRoomInUrl(activeRoomCode);
+        }
+
+        playerNames.red = document.getElementById('name-red').value.trim() || 'Strategic Red';
+        playerNames.blue = document.getElementById('name-blue').value.trim() || 'Tactical Blue';
+        playerNames.green = document.getElementById('name-green').value.trim() || 'Diplomatic Green';
+        playerNames.yellow = document.getElementById('name-yellow').value.trim() || 'Resilient Yellow';
+
+        document.getElementById('header-room-badge').innerText = `Room: ${activeRoomCode}`;
+        document.getElementById('active-room-display').innerText = `ROOM: ${activeRoomCode}`;
+
+        document.getElementById('setup-panel').style.display = 'none';
+        document.getElementById('main-game-layout').style.display = 'flex';
+
+        initBoardDOM();
+        selectPiece(playerInventories[currentTurn][0] || 'L5');
+        updateUI();
+        logAction(`Room <strong>${activeRoomCode}</strong> initialized. <strong>${playerNames.red}</strong> plays first.`);
+        playBeep(660, 'sine', 0.2);
+    }
+
+    function resetToSetup() {
+        if (!confirm("Return to setup configuration? Active game state will be preserved.")) return;
+        document.getElementById('setup-panel').style.display = 'block';
+        document.getElementById('main-game-layout').style.display = 'none';
+    }
+
+    // DOM Grid Initialization (Zero Physics)
+    function initBoardDOM() {
+        const board = document.getElementById('gameboard');
+        board.innerHTML = '';
+        for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = `cell-${x}-${y}`;
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+
+                // Mark starting corners
+                if (x === 0 && y === 0) cell.classList.add('corner-anchor');
+                if (x === 19 && y === 19) cell.classList.add('corner-anchor');
+                if (x === 19 && y === 0) cell.classList.add('corner-anchor');
+                if (x === 0 && y === 19) cell.classList.add('corner-anchor');
+
+                cell.addEventListener('mouseenter', () => highlightHover(x, y));
+                cell.addEventListener('mouseleave', () => clearHover());
+                cell.addEventListener('click', () => handleCellClick(x, y));
+
+                board.appendChild(cell);
+            }
+        }
+        renderBoardState();
+    }
+
+    function renderBoardState() {
+        for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+                const cell = document.getElementById(`cell-${x}-${y}`);
+                if (!cell) continue;
+                
+                // Clear state classes while preserving persistent highlights if active
+                cell.className = 'cell';
+                const occupant = gridData[y][x];
+                if (occupant) {
+                    if (occupant === 'neutral-wall') cell.classList.add('neutral-wall');
+                    else if (occupant === 'neutral-bridge') cell.classList.add('neutral-bridge');
+                    else cell.classList.add(occupant);
+                } else {
+                    if ((x === 0 && y === 0) || (x === 19 && y === 19) || (x === 19 && y === 0) || (x === 0 && y === 19)) {
+                        cell.classList.add('corner-anchor');
+                    }
+                }
+
+                // Apply interactive flood-fill highlights
+                if (swapProposerCoords.some(c => c.x === x && c.y === y)) {
+                    cell.classList.add('swap-proposer-highlight');
+                }
+                if (swapTargetCoords.some(c => c.x === x && c.y === y)) {
+                    cell.classList.add('swap-target-highlight');
+                }
+                if (forceKeepSelectedCoords.some(c => c.x === x && c.y === y)) {
+                    cell.classList.add('force-keep-highlight');
+                }
+            }
+        }
+    }
+
+    /* =========================================================================
+       RECURSIVE FLOOD-FILL STRUCTURE CALCULATOR
+       ========================================================================= */
+    function floodFillBlock(startX, startY, targetOwner) {
+        if (startX < 0 || startX >= BOARD_SIZE || startY < 0 || startY >= BOARD_SIZE) return [];
+        if (gridData[startY][startX] !== targetOwner) return [];
+
+        const visited = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(false));
+        const block = [];
+        const queue = [{ x: startX, y: startY }];
+        visited[startY][startX] = true;
+
+        while (queue.length > 0) {
+            const { x, y } = queue.shift();
+            block.push({ x, y });
+
+            const neighbors = [
+                { x: x + 1, y: y },
+                { x: x - 1, y: y },
+                { x: x, y: y + 1 },
+                { x: x, y: y - 1 }
+            ];
+
+            for (const n of neighbors) {
+                if (n.x >= 0 && n.x < BOARD_SIZE && n.y >= 0 && n.y < BOARD_SIZE) {
+                    if (!visited[n.y][n.x] && gridData[n.y][n.x] === targetOwner) {
+                        visited[n.y][n.x] = true;
+                        queue.push(n);
+                    }
+                }
+            }
+        }
+        return block;
+    }
+
+    /* =========================================================================
+       MATHEMATICAL PLACEMENT VALIDATION (Blokus + Trust Immunity)
+       ========================================================================= */
+    function validatePlacement(matrix, startX, startY, player) {
+        const rows = matrix.length;
+        const cols = matrix[0].length;
+        let coversCorner = false;
+        let sharesDiagonal = false;
+        let sharesEdge = false;
+        const cornerTarget = startingCorners[player];
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (matrix[r][c] !== 1) continue;
+                const bx = startX + c;
+                const by = startY + r;
+
+                // Out of bounds check
+                if (bx < 0 || bx >= BOARD_SIZE || by < 0 || by >= BOARD_SIZE) {
+                    return { valid: false, reason: 'Tile extends beyond the board.' };
+                }
+
+                // Collision check
+                if (gridData[by][bx] !== null) {
+                    return { valid: false, reason: 'Tile overlaps an occupied square.' };
+                }
+
+                // Trust Immunity Enforcement (Open Book Card)
+                // Opponents cannot place tiles adjacent to immune player's corner matrix
+                if (trustImmunity.stepsRemaining > 0 && trustImmunity.player && trustImmunity.player !== player) {
+                    const immunePlayer = trustImmunity.player;
+                    const surrounding = [
+                        { x: bx + 1, y: by }, { x: bx - 1, y: by },
+                        { x: bx, y: by + 1 }, { x: bx, y: by - 1 },
+                        { x: bx + 1, y: by + 1 }, { x: bx - 1, y: by + 1 },
+                        { x: bx + 1, y: by - 1 }, { x: bx - 1, y: by - 1 }
+                    ];
+                    for (const s of surrounding) {
+                        if (s.x >= 0 && s.x < BOARD_SIZE && s.y >= 0 && s.y < BOARD_SIZE) {
+                            if (gridData[s.y][s.x] === immunePlayer) {
+                                return {
+                                    valid: false,
+                                    reason: `Blocked by ${playerNames[immunePlayer]}'s Trust Immunity (${trustImmunity.stepsRemaining} steps remaining).`
+                                };
+                            }
+                        }
+                    }
+                }
+
+                // First placement check: must cover designated starting corner
+                if (firstMoveTracker[player]) {
+                    if (bx === cornerTarget.x && by === cornerTarget.y) {
+                        coversCorner = true;
+                    }
+                } else {
+                    // Check edges (Forbidden if sharing edge with own color)
+                    const edges = [
+                        { x: bx + 1, y: by },
+                        { x: bx - 1, y: by },
+                        { x: bx, y: by + 1 },
+                        { x: bx, y: by - 1 }
+                    ];
+                    for (const e of edges) {
+                        if (e.x >= 0 && e.x < BOARD_SIZE && e.y >= 0 && e.y < BOARD_SIZE) {
+                            if (gridData[e.y][e.x] === player) {
+                                sharesEdge = true;
+                            }
+                        }
+                    }
+
+                    // Check diagonals (Must share corner with own color or neutral bridge)
+                    const diags = [
+                        { x: bx + 1, y: by + 1 },
+                        { x: bx - 1, y: by + 1 },
+                        { x: bx + 1, y: by - 1 },
+                        { x: bx - 1, y: by - 1 }
+                    ];
+                    for (const d of diags) {
+                        if (d.x >= 0 && d.x < BOARD_SIZE && d.y >= 0 && d.y < BOARD_SIZE) {
+                            const val = gridData[d.y][d.x];
+                            if (val === player || val === 'neutral-bridge') {
+                                sharesDiagonal = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (firstMoveTracker[player]) {
+            if (!coversCorner) {
+                return { valid: false, reason: `First move must cover your starting corner (${cornerTarget.x}, ${cornerTarget.y}).` };
+            }
+            return { valid: true };
+        }
+
+        if (sharesEdge) {
+            return { valid: false, reason: 'Cannot touch flat edges with your own color tiles.' };
+        }
+        if (!sharesDiagonal) {
+            return { valid: false, reason: 'Must touch at least one diagonal corner of your own color or a neutral bridge.' };
+        }
+
+        return { valid: true };
+    }
+
+    // Hover Highlight Feedback (Mathematical Cell Tracking, Zero Jitter)
+    function highlightHover(x, y) {
+        clearHover();
+        hoveredOrigin = { x, y };
+
+        if (pendingCardAction === 'place_wall' || pendingCardAction === 'place_bridge') {
+            const cell = document.getElementById(`cell-${x}-${y}`);
+            if (cell && gridData[y][x] === null) {
+                cell.classList.add('legal-highlight');
+            } else if (cell) {
+                cell.classList.add('illegal-highlight');
+            }
+            return;
+        }
+
+        if (pendingCardAction) {
+            // During flood-fill card selection, hover indicates candidate square
+            const cell = document.getElementById(`cell-${x}-${y}`);
+            if (cell) cell.style.filter = 'brightness(1.15)';
+            return;
+        }
+
+        const rows = currentMatrix.length;
+        const cols = currentMatrix[0].length;
+        const validation = validatePlacement(currentMatrix, x, y, currentTurn);
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (currentMatrix[r][c] !== 1) continue;
+                const bx = x + c;
+                const by = y + r;
+                if (bx >= 0 && bx < BOARD_SIZE && by >= 0 && by < BOARD_SIZE) {
+                    const cell = document.getElementById(`cell-${bx}-${by}`);
+                    if (cell) {
+                        cell.classList.add(validation.valid ? 'legal-highlight' : 'illegal-highlight');
+                    }
+                }
+            }
+        }
+    }
+
+    function clearHover() {
+        const highlighted = document.querySelectorAll('.legal-highlight, .illegal-highlight');
+        highlighted.forEach(el => {
+            el.classList.remove('legal-highlight');
+            el.classList.remove('illegal-highlight');
+            el.style.filter = '';
+        });
+    }
+
+    // Board Cell Click Dispatcher
+    function handleCellClick(x, y) {
+        // --- POWER CARD ACTION: BOUNDARY WALL ---
+        if (pendingCardAction === 'place_wall') {
+            if (gridData[y][x] !== null) {
+                showToast("Cannot build boundary wall on an occupied cell!");
+                playBeep(240, 'sawtooth', 0.2);
+                return;
+            }
+            // Finalized: consume card & apply penalty
+            gridData[y][x] = 'neutral-wall';
+            consumeCard(currentTurn, 'wall');
+            circumscribingPenalty[currentTurn] = true;
+            pendingCardAction = null;
+            hideCancelBtn();
+
+            logAction(`🧱 <strong>${playerNames[currentTurn]}</strong> built a neutral Boundary Wall at (${x}, ${y}). Circumscribing Penalty triggered (skips next turn).`);
+            playBeep(320, 'sine', 0.25);
+            showToast("Boundary Wall placed! Circumscribing Penalty applied.");
+            renderBoardState();
+            advanceTurn();
+            return;
+        }
+
+        // --- POWER CARD ACTION: THIRD-PARTY BRIDGE ---
+        if (pendingCardAction === 'place_bridge') {
+            if (gridData[y][x] !== null) {
+                showToast("Cannot place bridge on an occupied square!");
+                playBeep(240, 'sawtooth', 0.2);
+                return;
+            }
+            // Finalized: consume card
+            gridData[y][x] = 'neutral-bridge';
+            consumeCard(currentTurn, 'bridge');
+            pendingCardAction = null;
+            hideCancelBtn();
+
+            logAction(`🌉 <strong>${playerNames[currentTurn]}</strong> built a collaborative Third-Party Bridge at (${x}, ${y})!`);
+            playBeep(640, 'sine', 0.3);
+            showToast("Third-Party Bridge constructed! Overrides adjacency for all players.");
+            renderBoardState();
+            advanceTurn();
+            return;
+        }
+
+        // --- POWER CARD ACTION: SWAP - SELECT PROPOSER'S OWN BLOCK ---
+        if (pendingCardAction === 'swap_pick_proposer') {
+            if (gridData[y][x] !== currentTurn) {
+                showToast(`Must click a tile block of your own color (${currentTurn.toUpperCase()})!`);
+                playBeep(240, 'sawtooth', 0.2);
+                return;
+            }
+            // Flood-Fill calculates whole structure
+            swapProposerCoords = floodFillBlock(x, y, currentTurn);
+            renderBoardState();
+            playBeep(700, 'sine', 0.15);
+            
+            pendingCardAction = 'swap_pick_target';
+            document.getElementById('action-prompt').innerText = `Step 2/3: Click an opponent tile block (${swapTargetPlayer.toUpperCase()}) to trade with.`;
+            showToast(`Selected your ${swapProposerCoords.length}-square block (solid purple). Now click opponent block.`);
+            return;
+        }
+
+        // --- POWER CARD ACTION: SWAP - SELECT TARGET OPPONENT'S BLOCK ---
+        if (pendingCardAction === 'swap_pick_target') {
+            if (gridData[y][x] !== swapTargetPlayer) {
+                showToast(`Must click a tile block of ${playerNames[swapTargetPlayer]}'s color (${swapTargetPlayer.toUpperCase()})!`);
+                playBeep(240, 'sawtooth', 0.2);
+                return;
+            }
+            // Flood-Fill calculates whole structure
+            swapTargetCoords = floodFillBlock(x, y, swapTargetPlayer);
+            renderBoardState();
+            playBeep(800, 'sine', 0.15);
+
+            // Step 3: Trigger A / B Consensus Prompt Review Modal
+            triggerSwapConsensusModal();
+            return;
+        }
+
+        // --- POWER CARD ACTION: FORCE KEEP - SELECT OPPONENT BLOCK ---
+        if (pendingCardAction === 'force_keep_pick') {
+            const cellOwner = gridData[y][x];
+            if (!cellOwner || cellOwner === currentTurn || cellOwner === 'neutral-wall' || cellOwner === 'neutral-bridge') {
+                showToast("Must click an opponent's tile cluster!");
+                playBeep(240, 'sawtooth', 0.2);
+                return;
+            }
+            // Recursive Flood-Fill to find entire block
+            forceKeepSelectedCoords = floodFillBlock(x, y, cellOwner);
+            renderBoardState();
+            playBeep(650, 'triangle', 0.2);
+
+            triggerForceKeepModal(cellOwner);
+            return;
+        }
+
+        // --- STANDARD TILE PLACEMENT ---
+        const validation = validatePlacement(currentMatrix, x, y, currentTurn);
+        if (!validation.valid) {
+            showToast(validation.reason);
+            playBeep(200, 'sawtooth', 0.15);
+            return;
+        }
+
+        // Commit placement
+        const rows = currentMatrix.length;
+        const cols = currentMatrix[0].length;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (currentMatrix[r][c] === 1) {
+                    gridData[y + r][x + c] = currentTurn;
+                }
+            }
+        }
+
+        // Remove piece from player inventory
+        const inv = playerInventories[currentTurn];
+        const pieceIdx = inv.indexOf(selectedPieceId);
+        if (pieceIdx > -1) {
+            inv.splice(pieceIdx, 1);
+        }
+        firstMoveTracker[currentTurn] = false;
+
+        logAction(`🟢 <strong>${playerNames[currentTurn]}</strong> placed <em>${selectedPieceId}</em> at (${x}, ${y}).`);
+        playBeep(720, 'triangle', 0.14);
+        renderBoardState();
+        clearHover();
+
+        if (checkGameEnd()) {
+            triggerVictory();
+            return;
+        }
+
+        advanceTurn();
+    }
+
+    // Turn Management & Step Countdown
+    function advanceTurn() {
+        // Step countdown for Trust Immunity (8 steps = 2 full rounds)
+        if (trustImmunity.stepsRemaining > 0) {
+            trustImmunity.stepsRemaining--;
+            if (trustImmunity.stepsRemaining === 0) {
+                logAction(`🛡️ Trust Immunity for <strong>${playerNames[trustImmunity.player]}</strong> has expired.`);
+                trustImmunity.player = null;
+            }
+        }
+
+        const currIdx = players.indexOf(currentTurn);
+        currentTurn = players[(currIdx + 1) % players.length];
+
+        // Circumscribing Penalty Check (Skip Turn Step)
+        if (circumscribingPenalty[currentTurn]) {
+            circumscribingPenalty[currentTurn] = false;
+            logAction(`⚠️ <strong>${playerNames[currentTurn]}</strong> skipped turn due to Circumscribing Penalty (Boundary Wall).`);
+            showToast(`${playerNames[currentTurn]} turn skipped (Circumscribing Penalty).`);
+            playBeep(300, 'sine', 0.15);
+            advanceTurn();
+            return;
+        }
+
+        // Auto-select first available piece
+        const inv = playerInventories[currentTurn];
+        if (inv.length > 0) {
+            selectPiece(inv[0]);
+        }
+
+        updateUI();
+    }
+
+    function passTurn() {
+        if (pendingCardAction) {
+            cancelPendingCardAction();
+            return;
+        }
+        logAction(`⏸️ <strong>${playerNames[currentTurn]}</strong> passed their turn.`);
+        playBeep(350, 'sine', 0.12);
+        showToast(`${playerNames[currentTurn]} passed.`);
+        advanceTurn();
+    }
+
+    function selectPiece(id) {
+        selectedPieceId = id;
+        const piece = getPieceDefinition(id);
+        currentMatrix = piece.matrix;
+        renderActivePiecePreview();
+        renderPiecesTray();
+    }
+
+    function renderActivePiecePreview() {
+        const piece = getPieceDefinition(selectedPieceId);
+        document.getElementById('active-tile-name').innerText = `${piece.name} (${selectedPieceId}, ${piece.size} sq)`;
+        const container = document.getElementById('active-tile-matrix');
+        container.innerHTML = '';
+        container.style.gridTemplateColumns = `repeat(${currentMatrix[0].length}, 16px)`;
+
+        for (let r = 0; r < currentMatrix.length; r++) {
+            for (let c = 0; c < currentMatrix[0].length; c++) {
+                const sq = document.createElement('div');
+                sq.className = 'p-square';
+                if (currentMatrix[r][c] === 1) {
+                    sq.classList.add('filled');
+                    sq.style.backgroundColor = playerColorsHex[currentTurn];
+                }
+                container.appendChild(sq);
+            }
+        }
+    }
+
+    function renderPiecesTray() {
+        const tray = document.getElementById('pieces-tray');
+        tray.innerHTML = '';
+        const inv = playerInventories[currentTurn];
+        document.getElementById('tray-count-label').innerText = `${inv.length} tiles remaining`;
+
+        BLOKUS_PIECES.forEach(piece => {
+            const isAvailable = inv.includes(piece.id);
+            const item = document.createElement('div');
+            item.className = 'tray-item';
+            if (piece.id === selectedPieceId) item.classList.add('active');
+            if (!isAvailable) item.classList.add('used');
+
+            // Miniature matrix
+            const mini = document.createElement('div');
+            mini.className = 'piece-matrix-view';
+            mini.style.gridTemplateColumns = `repeat(${piece.matrix[0].length}, 8px)`;
+            for (let r = 0; r < piece.matrix.length; r++) {
+                for (let c = 0; c < piece.matrix[0].length; c++) {
+                    const sq = document.createElement('div');
+                    sq.style.width = '8px';
+                    sq.style.height = '8px';
+                    sq.style.background = piece.matrix[r][c] === 1 ? playerColorsHex[currentTurn] : 'transparent';
+                    mini.appendChild(sq);
+                }
+            }
+            item.appendChild(mini);
+
+            const label = document.createElement('div');
+            label.className = 'tray-item-label';
+            label.innerText = piece.id;
+            item.appendChild(label);
+
+            if (isAvailable) {
+                item.addEventListener('click', () => {
+                    selectPiece(piece.id);
+                    playBeep(580, 'sine', 0.08);
+                });
+            }
+
+            tray.appendChild(item);
+        });
+    }
+
+    function updateUI() {
+        // Turn indicator
+        const turnHeader = document.getElementById('turn-indicator');
+        turnHeader.innerText = `Current Turn: ${playerNames[currentTurn]} (${currentTurn.toUpperCase()})`;
+        turnHeader.style.color = playerColorsHex[currentTurn];
+
+        const prompt = document.getElementById('action-prompt');
+        if (pendingCardAction) {
+            // Card prompt active
+        } else if (firstMoveTracker[currentTurn]) {
+            prompt.innerText = `First Move: Must anchor your piece on corner (${startingCorners[currentTurn].x}, ${startingCorners[currentTurn].y})!`;
+        } else {
+            prompt.innerText = 'Position tile to touch your diagonal corners without flat edge contact.';
+        }
+
+        // Status Pills
+        const pillsRow = document.getElementById('status-pills-row');
+        pillsRow.innerHTML = '';
+        if (trustImmunity.stepsRemaining > 0 && trustImmunity.player) {
+            const pill = document.createElement('span');
+            pill.className = 'status-pill immunity';
+            pill.innerHTML = `🛡️ Trust Immunity: ${playerNames[trustImmunity.player]} (${trustImmunity.stepsRemaining} steps left)`;
+            pillsRow.appendChild(pill);
+        }
+        if (circumscribingPenalty[currentTurn]) {
+            const pill = document.createElement('span');
+            pill.className = 'status-pill penalty';
+            pill.innerHTML = `⚠️ Circumscribing Penalty (Next turn will be skipped)`;
+            pillsRow.appendChild(pill);
+        }
+
+        // Deck Moves Remaining (Strict Cap 3)
+        const movesLeft = MAX_POWER_MOVES - powerMovesUsed[currentTurn];
+        const movesBadge = document.getElementById('deck-moves-left-badge');
+        movesBadge.innerText = `Moves Left: ${movesLeft} / ${MAX_POWER_MOVES}`;
+        if (movesLeft <= 0) {
+            movesBadge.style.background = '#fee2e2';
+            movesBadge.style.color = '#b91c1c';
+        } else {
+            movesBadge.style.background = '#f3e8ff';
+            movesBadge.style.color = '#7e22ce';
+        }
+
+        // Power Deck Button States (Conditional balance + deck cap)
+        const deck = playerDecks[currentTurn];
+        const hasMoves = movesLeft > 0;
+
+        document.getElementById('count-swap').innerText = deck.swap;
+        document.getElementById('card-swap').disabled = !hasMoves || deck.swap <= 0;
+
+        document.getElementById('count-force').innerText = deck.force;
+        document.getElementById('card-force').disabled = !hasMoves || deck.force <= 0;
+
+        document.getElementById('count-open').innerText = deck.open;
+        document.getElementById('card-open').disabled = !hasMoves || deck.open <= 0;
+
+        document.getElementById('count-wall').innerText = deck.wall;
+        document.getElementById('card-wall').disabled = !hasMoves || deck.wall <= 0;
+
+        document.getElementById('count-bridge').innerText = deck.bridge;
+        document.getElementById('card-bridge').disabled = !hasMoves || deck.bridge <= 0;
+
+        // Roster Render with Politeness Token Score Engine
+        const roster = document.getElementById('roster-grid');
+        roster.innerHTML = '';
+        players.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'roster-card';
+            if (p === currentTurn) card.classList.add('active-turn');
+
+            const remainingSquares = playerInventories[p].reduce((acc, pid) => acc + getPieceDefinition(pid).size, 0);
+            const tokens = politenessTokens[p];
+            const netPenalty = Math.max(0, remainingSquares - (tokens * 3));
+
+            card.innerHTML = `
+                <div class="roster-header">
+                    <span class="color-dot" style="background: ${playerColorsHex[p]};"></span>
+                    <span>${playerNames[p]}</span>
+                </div>
+                <div class="roster-stats">
+                    <span>Tiles: <strong>${playerInventories[p].length}</strong></span>
+                    <span>Net Penalty: <strong>${netPenalty}</strong></span>
+                    <span class="token-tag">Tokens: <strong>${tokens}</strong> (-${tokens * 3})</span>
+                </div>
+            `;
+            roster.appendChild(card);
+        });
+
+        renderPiecesTray();
+        renderActivePiecePreview();
+    }
+
+    // Modal Control
+    function openModal(contentHtml) {
+        const modal = document.getElementById('workflow-modal');
+        const wrapper = document.getElementById('modal-wrapper');
+        wrapper.innerHTML = contentHtml;
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('workflow-modal').style.display = 'none';
+    }
+
+    function showCancelBtn() {
+        document.getElementById('cancel-action-btn').style.display = 'inline-flex';
+    }
+
+    function hideCancelBtn() {
+        document.getElementById('cancel-action-btn').style.display = 'none';
+    }
+
+    // Conditional Card Consumption Utility
+    function consumeCard(player, cardKey) {
+        playerDecks[player][cardKey]--;
+        powerMovesUsed[player]++;
+        updateUI();
+    }
+
+    function cancelPendingCardAction() {
+        pendingCardAction = null;
+        swapProposerCoords = [];
+        swapTargetCoords = [];
+        swapTargetPlayer = null;
+        forceKeepSelectedCoords = [];
+        hideCancelBtn();
+        renderBoardState();
+        updateUI();
+        showToast("Power Card action cancelled. Inventory balance preserved!");
+        playBeep(320, 'sine', 0.1);
+    }
+
+    /* =========================================================================
+       POWER CARD 1: SWAP CARD (MUTUAL FLOOD-FILL & HOST ARBITRATION)
+       ========================================================================= */
+    function initiateSwapWorkflow() {
+        const movesLeft = MAX_POWER_MOVES - powerMovesUsed[currentTurn];
+        if (movesLeft <= 0 || playerDecks[currentTurn].swap <= 0) return;
+
+        // Step 1: Target Designation Trigger
+        const otherPlayers = players.filter(p => p !== currentTurn);
+        let optionsHtml = otherPlayers.map(p => `
+            <option value="${p}">${playerNames[p]} (${p.toUpperCase()})</option>
+        `).join('');
+
+        openModal(`
+            <h3 style="margin-top:0;">🔄 Initiate Swap Card</h3>
+            <p style="font-size:0.9rem; color:#64748b;">
+                Select target opponent. You will each designate one contiguous tile block on the board via mathematical Flood-Fill to trade.
+            </p>
+            <div style="margin: 15px 0;">
+                <label style="font-weight:600; display:block; margin-bottom:6px;">Designate Target Opponent:</label>
+                <select id="swap-target-player" class="select-input">
+                    ${optionsHtml}
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-confirm" onclick="confirmSwapTarget()">Proceed to Mutual Selection ➔</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        `);
+    }
+
+    function confirmSwapTarget() {
+        swapTargetPlayer = document.getElementById('swap-target-player').value;
+        closeModal();
+
+        pendingCardAction = 'swap_pick_proposer';
+        swapProposerCoords = [];
+        swapTargetCoords = [];
+        showCancelBtn();
+
+        document.getElementById('action-prompt').innerText = `Step 1/3: Click your own tile block (${currentTurn.toUpperCase()}) on the board to highlight in Purple.`;
+        showToast(`Target set: ${playerNames[swapTargetPlayer]}. Click your own block.`);
+    }
+
+    function triggerSwapConsensusModal() {
+        // Step 3: A / B Consensus Prompt Review Modal
+        openModal(`
+            <h3 style="margin-top:0;">🤝 A / B Consensus Prompt</h3>
+            <p style="font-size:0.92rem; line-height:1.4;">
+                <strong>${playerNames[currentTurn]}</strong> proposes swapping their <strong>${swapProposerCoords.length}-square</strong> block (<span style="color:#9b59b6; font-weight:700;">Purple</span>) for <strong>${playerNames[swapTargetPlayer]}</strong>'s <strong>${swapTargetCoords.length}-square</strong> block (<span style="color:#00bcd4; font-weight:700;">Cyan</span>).
+            </p>
+            <div style="background:#ecfdf5; border:1px solid #a7f3d0; padding:12px; border-radius:8px; margin:14px 0; font-size:0.85rem; color:#065f46;">
+                🌟 <strong>Consensus Reward:</strong> If accepted, both players receive <strong>+1 Politeness Token (-3 penalty deduction)</strong>.
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-confirm" onclick="resolveSwapConsensus(true)">Accept & Save Face (Mutual Benefit)</button>
+                <button class="btn btn-reject" onclick="resolveSwapConsensus(false)">Decline Trade</button>
+            </div>
+        `);
+    }
+
+    function resolveSwapConsensus(accepted) {
+        closeModal();
+        if (accepted) {
+            // Approved: execute swap & consume card & grant politeness tokens
+            executeApprovedSwap();
+        } else {
+            // Declined: invoke Host Arbitration
+            triggerHostArbitrationModal();
+        }
+    }
+
+    function executeApprovedSwap() {
+        // Execute ownership swap in matrix
+        swapProposerCoords.forEach(c => {
+            gridData[c.y][c.x] = swapTargetPlayer;
+        });
+        swapTargetCoords.forEach(c => {
+            gridData[c.y][c.x] = currentTurn;
+        });
+
+        // Politeness Token Reward (-3 penalty deduction each)
+        politenessTokens[currentTurn]++;
+        politenessTokens[swapTargetPlayer]++;
+
+        // Consume card only on finalized approval
+        consumeCard(currentTurn, 'swap');
+
+        logAction(`🤝 <strong>Consensus Achieved!</strong> ${playerNames[currentTurn]} and ${playerNames[swapTargetPlayer]} swapped blocks. Both gained +1 Politeness Token (-3 penalty)!`);
+        playBeep(880, 'sine', 0.35);
+        showToast("Mutual trade finalized! +1 Politeness Token to both.");
+
+        // Clean up state
+        pendingCardAction = null;
+        swapProposerCoords = [];
+        swapTargetCoords = [];
+        swapTargetPlayer = null;
+        hideCancelBtn();
+        renderBoardState();
+        updateUI();
+        advanceTurn();
+    }
+
+    function triggerHostArbitrationModal() {
+        openModal(`
+            <h3 style="margin-top:0; color:#8e44ad;">⚖️ Host Arbitration Invoked</h3>
+            <p style="font-size:0.9rem; color:#64748b;">
+                <strong>${playerNames[swapTargetPlayer]}</strong> declined the proposed trade. As session host, choose the final ruling:
+            </p>
+            <div class="modal-actions">
+                <button class="btn btn-arbitrate" onclick="hostEnforceSwap()">Host Enforces Swap</button>
+                <button class="btn btn-secondary" onclick="hostRefundSwap()">Cancel & Refund Card</button>
+            </div>
+        `);
+    }
+
+    function hostEnforceSwap() {
+        closeModal();
+        logAction(`⚖️ <strong>Host Ruling:</strong> Host enforced the tile swap between ${playerNames[currentTurn]} and ${playerNames[swapTargetPlayer]}.`);
+        executeApprovedSwap();
+    }
+
+    function hostRefundSwap() {
+        closeModal();
+        cancelPendingCardAction();
+        logAction(`⚖️ <strong>Host Ruling:</strong> Trade cancelled. ${playerNames[currentTurn]}'s Swap Card balance refunded.`);
+        showToast("Trade cancelled. Card refunded.");
+        playBeep(300, 'sine', 0.15);
+    }
+
+    /* =========================================================================
+       POWER CARD 2: FORCE KEEP CARD (FLOOD-FILL HIJACK)
+       ========================================================================= */
+    function activateForceKeepCard() {
+        const movesLeft = MAX_POWER_MOVES - powerMovesUsed[currentTurn];
+        if (movesLeft <= 0 || playerDecks[currentTurn].force <= 0) return;
+
+        pendingCardAction = 'force_keep_pick';
+        forceKeepSelectedCoords = [];
+        showCancelBtn();
+
+        document.getElementById('action-prompt').innerText = "Click any opponent's tile cluster on the board to hijack ownership via Flood-Fill.";
+        showToast("Force Keep active: Click an opponent's tile cluster.");
+        playBeep(520, 'square', 0.15);
+    }
+
+    function triggerForceKeepModal(victimPlayer) {
+        openModal(`
+            <h3 style="margin-top:0; color:#d35400;">🎯 Confirm Force Keep Hijack</h3>
+            <p style="font-size:0.92rem; line-height:1.4;">
+                Hijack the entire <strong>${forceKeepSelectedCoords.length}-square</strong> cluster of <strong>${playerNames[victimPlayer]}</strong> (<span style="color:#e67e22; font-weight:700;">Highlighted Orange</span>) to your ownership?
+            </p>
+            <div class="modal-actions">
+                <button class="btn btn-confirm" onclick="confirmForceKeep('${victimPlayer}')">Lock & Hijack Ownership</button>
+                <button class="btn btn-secondary" onclick="cancelPendingCardAction(); closeModal();">Cancel & Refund</button>
+            </div>
+        `);
+    }
+
+    function confirmForceKeep(victimPlayer) {
+        closeModal();
+        // Hijack structural ownership to active player
+        forceKeepSelectedCoords.forEach(c => {
+            gridData[c.y][c.x] = currentTurn;
+        });
+
+        // Finalized: consume card
+        consumeCard(currentTurn, 'force');
+        logAction(`🎯 <strong>${playerNames[currentTurn]}</strong> activated Force Keep: hijacked ${forceKeepSelectedCoords.length}-square cluster from ${playerNames[victimPlayer]}.`);
+        playBeep(750, 'triangle', 0.3);
+        showToast("Cluster hijacked and secured!");
+
+        pendingCardAction = null;
+        forceKeepSelectedCoords = [];
+        hideCancelBtn();
+        renderBoardState();
+        advanceTurn();
+    }
+
+    /* =========================================================================
+       POWER CARD 3: OPEN BOOK CARD (TRUST IMMUNITY - 2 ROUNDS / 8 STEPS)
+       ========================================================================= */
+    function activateOpenBookCard() {
+        const movesLeft = MAX_POWER_MOVES - powerMovesUsed[currentTurn];
+        if (movesLeft <= 0 || playerDecks[currentTurn].open <= 0) return;
+
+        // Reveal remaining opponent reserves face-up
+        const otherPlayers = players.filter(p => p !== currentTurn);
+        let listHtml = otherPlayers.map(p => {
+            const tiles = playerInventories[p].map(tid => `<strong>${tid}</strong> (${getPieceDefinition(tid).size}sq)`).join(', ');
+            return `
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px; border-radius:6px; margin-bottom:8px; text-align:left;">
+                    <div style="font-weight:700; color:${playerColorsHex[p]};">${playerNames[p]} (${p.toUpperCase()})</div>
+                    <div style="font-size:0.8rem; color:#475569; margin-top:4px;">Remaining Hand (${playerInventories[p].length} tiles): ${tiles || 'Empty'}</div>
+                </div>
+            `;
+        }).join('');
+
+        openModal(`
+            <h3 style="margin-top:0; color:#2980b9;">📖 Open Book — Social Penetration Intelligence</h3>
+            <p style="font-size:0.85rem; color:#64748b;">
+                Transparently review all opponent reserves to assess mutual vulnerabilities. Grants <strong>Trust Immunity</strong> for 2 full rounds (8 individual steps) preventing opponent placements adjacent to your matrix!
+            </p>
+            <div style="max-height:220px; overflow-y:auto; margin:14px 0;">
+                ${listHtml}
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-confirm" onclick="confirmOpenBookActivation()">Activate Trust Immunity (8 Steps)</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel & Refund</button>
+            </div>
+        `);
+    }
+
+    function confirmOpenBookActivation() {
+        closeModal();
+        // Consume card
+        consumeCard(currentTurn, 'open');
+
+        // Grant Trust Immunity for 2 full rounds (8 individual steps)
+        trustImmunity = {
+            player: currentTurn,
+            stepsRemaining: 8
+        };
+
+        logAction(`📖 <strong>${playerNames[currentTurn]}</strong> deployed Open Book Card. Gained <strong>Trust Immunity</strong> for 2 full rounds (8 steps)!`);
+        playBeep(620, 'sine', 0.25);
+        showToast(`Trust Immunity active for 8 steps! Opponents cannot build adjacent to your tiles.`);
+        updateUI();
+    }
+
+    /* =========================================================================
+       POWER CARD 4: BOUNDARY WALL (CIRCUMSCRIBING PENALTY)
+       ========================================================================= */
+    function activateBoundaryWallCard() {
+        const movesLeft = MAX_POWER_MOVES - powerMovesUsed[currentTurn];
+        if (movesLeft <= 0 || playerDecks[currentTurn].wall <= 0) return;
+
+        pendingCardAction = 'place_wall';
+        showCancelBtn();
+
+        document.getElementById('action-prompt').innerText = "Click any empty board square to build a neutral grey Boundary Wall (#7f8c8d).";
+        showToast("Boundary Wall: Click any empty cell to place barricade.");
+        playBeep(400, 'sine', 0.12);
+    }
+
+    /* =========================================================================
+       POWER CARD 5: THIRD-PARTY BRIDGE (COLLABORATIVE DIAGONAL)
+       ========================================================================= */
+    function activateThirdPartyBridge() {
+        const movesLeft = MAX_POWER_MOVES - powerMovesUsed[currentTurn];
+        if (movesLeft <= 0 || playerDecks[currentTurn].bridge <= 0) return;
+
+        pendingCardAction = 'place_bridge';
+        showCancelBtn();
+
+        document.getElementById('action-prompt').innerText = "Click any empty bottleneck slot to build a collaborative Third-Party Bridge (#16a085).";
+        showToast("Third-Party Bridge: Click any empty cell to construct bridge.");
+        playBeep(600, 'sine', 0.12);
+    }
+
+    /* =========================================================================
+       POLITENESS TOKEN SCORING ENGINE & END-GAME CALCULATION
+       ========================================================================= */
+    function checkGameEnd() {
+        return players.every(p => playerInventories[p].length === 0);
+    }
+
+    function triggerVictory() {
+        // Routine: Total Penalty Score = (Unplaced remaining tile squares) - (Politeness Tokens * 3)
+        let scores = players.map(p => {
+            const unplacedSquares = playerInventories[p].reduce((acc, pid) => acc + getPieceDefinition(pid).size, 0);
+            const tokens = politenessTokens[p];
+            const tokenDeduction = tokens * 3;
+            const finalPenalty = Math.max(0, unplacedSquares - tokenDeduction);
+            return {
+                player: p,
+                name: playerNames[p],
+                unplacedSquares,
+                tokens,
+                tokenDeduction,
+                finalPenalty
+            };
+        });
+
+        // Enforcement Rule: Lowest penalty score wins
+        scores.sort((a, b) => a.finalPenalty - b.finalPenalty);
+        const winner = scores[0];
+
+        let resultsTable = scores.map((s, idx) => `
+            <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:8px; font-weight:700;">#${idx + 1}</td>
+                <td style="padding:8px; color:${playerColorsHex[s.player]}; font-weight:700;">${s.name}</td>
+                <td style="padding:8px;">${s.unplacedSquares} sq</td>
+                <td style="padding:8px; color:#059669; font-weight:700;">-${s.tokenDeduction} pts (${s.tokens} tokens)</td>
+                <td style="padding:8px; font-weight:800; font-size:1.15rem; color:#1e293b;">${s.finalPenalty}</td>
+            </tr>
+        `).join('');
+
+        openModal(`
+            <h2 style="margin-top:0; color:#059669;">🏆 Game Complete — Consensus Achieved!</h2>
+            <p><strong>${winner.name}</strong> claims victory with the lowest penalty score of <strong>${winner.finalPenalty}</strong>!</p>
+            <table style="width:100%; border-collapse:collapse; margin:15px 0; font-size:0.9rem;">
+                <thead>
+                    <tr style="background:#f8fafc; border-bottom:2px solid #cbd5e1; text-align:left;">
+                        <th style="padding:8px;">Rank</th>
+                        <th style="padding:8px;">Player Profile</th>
+                        <th style="padding:8px;">Unplaced</th>
+                        <th style="padding:8px;">Politeness Bonus</th>
+                        <th style="padding:8px;">Final Penalty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${resultsTable}
+                </tbody>
+            </table>
+            <div style="font-size:0.8rem; color:#64748b; background:#f8fafc; padding:8px 12px; border-radius:6px; margin-bottom:12px;">
+                💡 <em>Mathematically rewarding collaborative trades, consensus, and face-saving options.</em>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-confirm" onclick="location.reload()">Play Again</button>
+            </div>
+        `);
+
+        playBeep(880, 'sine', 0.6);
+    }
+
+    // Keyboard Shortcuts (R to Rotate, F to Flip, P to Pass)
+    window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if (e.key === 'r' || e.key === 'R') {
+            rotateCurrentTile();
+        } else if (e.key === 'f' || e.key === 'F') {
+            flipCurrentTile();
+        } else if (e.key === 'p' || e.key === 'P') {
+            passTurn();
+        }
+    });
+
+    // Boot: Initialize URL room parameter query string
+    window.addEventListener('DOMContentLoaded', () => {
+        initRoomParameter();
+    });
+</script>
+
+</body>
+</html>
